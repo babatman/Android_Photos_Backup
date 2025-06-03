@@ -14,6 +14,21 @@
     Requires: PowerShell 5.1 or higher
 #>
 
+
+$backupConfig = @{
+    DeviceName      = "Galaxy S25 Ultra"
+    StorageRoot     = "Stockage interne"
+    DestinationRoot = "P:\"
+    BackupMappings  = [ordered]@{
+        'DCIM\Camera'      = ''
+        'DCIM\Screenshots' = 'Screenshots'
+        'WhatsApp'         = 'WhatsAPP'
+        'Download'         = 'Download_S25'
+    }
+}
+
+
+
 class BackupSummary {
     [int]$NewFilesCount = 0
     [int]$ExistingFilesCount = 0
@@ -474,26 +489,8 @@ $backupConfig = @{
 #Cleaning
 Remove-Variable backupConfig  -ErrorAction SilentlyContinue
 
-$backupConfig = @{
-    DeviceName      = "Galaxy S25 Ultra"
-    StorageRoot     = "Stockage interne"
-    DestinationRoot = "P:\"
-    BackupMappings  = [ordered]@{
-        'DCIM\Camera'      = ''
-        'DCIM\Screenshots' = 'Screenshots'
-        'WhatsApp'         = 'WhatsAPP'
-        'Download'         = 'Download_S25'
-    }
-}
 
-$backupConfig = @{
-    DeviceName      = "Galaxy S25 Ultra"
-    StorageRoot     = "Stockage interne"
-    DestinationRoot = "P:\"
-    BackupMappings  = [ordered]@{
-        'DCIM\Camera'      = ''
-    }
-}
+
 
 # Usage example
 $result = Start-AndroidBackup @backupConfig -Verbose -InformationAction Continue
