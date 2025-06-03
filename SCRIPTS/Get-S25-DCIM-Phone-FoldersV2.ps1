@@ -32,7 +32,8 @@ class BackupSummary {
     [string]ToString() {
         $duration = if ($this.EndTime) { 
             ($this.EndTime - $this.StartTime).ToString("hh\:mm\:ss") 
-        } else { 
+        }
+        else { 
             "In progress..." 
         }
         return "Backup Summary - New: $($this.NewFilesCount), Existing: $($this.ExistingFilesCount), Errors: $($this.ErrorCount), Duration: $duration"
@@ -67,7 +68,8 @@ function New-BackupDirectory {
                 Write-Verbose "Creating directory: $Path"
                 $null = New-Item -Path $Path -ItemType Directory -Force
                 Write-Output "Created directory: $Path"
-            } else {
+            }
+            else {
                 Write-Verbose "Directory already exists: $Path"
             }
         }
@@ -108,8 +110,8 @@ function Get-MtpDevice {
             $computerNamespace = $shellApp.NameSpace(0x11)
             
             $device = $computerNamespace.Items() | 
-                Where-Object { $_.Name -eq $DeviceName } | 
-                Select-Object -First 1
+            Where-Object { $_.Name -eq $DeviceName } | 
+            Select-Object -First 1
             
             if (-not $device) {
                 throw "MTP device '$DeviceName' not found. Please ensure the device is connected and MTP is enabled."
@@ -163,8 +165,8 @@ function Get-MtpFolder {
             foreach ($segment in $pathSegments) {
                 Write-Verbose "Navigating to folder segment: $segment"
                 $nextFolder = $currentFolder.GetFolder.Items() | 
-                    Where-Object { $_.Name -eq $segment } | 
-                    Select-Object -First 1
+                Where-Object { $_.Name -eq $segment } | 
+                Select-Object -First 1
                 
                 if (-not $nextFolder) {
                     throw "Folder '$segment' not found in path '$SubPath'"
@@ -285,7 +287,7 @@ function Copy-MtpContent {
             # Get source folder information
             $sourcePath = Get-MtpFolderPath -MtpFolder $SourceMtpFolder
             Write-Information "Processing folder: $sourcePath" -InformationAction Continue
-            
+         
             if ($PSCmdlet.ShouldProcess($sourcePath, "Backup to $normalizedDestination")) {
                 $shellApp = New-Object -ComObject Shell.Application
                 $destinationShell = $shellApp.NameSpace($normalizedDestination)
@@ -295,13 +297,18 @@ function Copy-MtpContent {
                 Write-Verbose "Found $itemCount items to process"
                 
                 $currentItem = 0
+                $sw = [System.Diagnostics.Stopwatch]::StartNew()
+                Write-Progress -Activity "Initialization" -Status "Starting up..." -PercentComplete 0 -Id 1
                 foreach ($item in $items) {
                     $currentItem++
                     $itemName = $item.Name
                     $destinationFile = Join-Path $normalizedDestination $itemName
                     
-                    Write-Progress -Activity "Backing up $sourcePath" -Status $itemName -PercentComplete (($currentItem / $itemCount) * 100)
-                    
+                    if ($sw.Elapsed.TotalMilliseconds -ge 500) {
+                        Write-Progress -Activity "Backing up $sourcePath" -Status $itemName -PercentComplete (($currentItem / $itemCount) * 100) -id 1
+                        $sw.Reset(); $sw.Start()
+                    }
+
                     try {
                         if ($item.IsFolder) {
                             Write-Verbose "Processing subfolder: $itemName"
@@ -347,7 +354,7 @@ function Copy-MtpContent {
                     }
                 }
                 
-                Write-Progress -Activity "Backing up $sourcePath" -Completed
+                Write-Progress -Activity "Backing up $sourcePath" -Completed -Id 1
                 Write-Information "Completed backup of: $sourcePath" -InformationAction Continue
             }
         }
@@ -468,14 +475,23 @@ $backupConfig = @{
 Remove-Variable backupConfig  -ErrorAction SilentlyContinue
 
 $backupConfig = @{
-    DeviceName = "Galaxy S25 Ultra"
-    StorageRoot = "Stockage interne"
+    DeviceName      = "Galaxy S25 Ultra"
+    StorageRoot     = "Stockage interne"
     DestinationRoot = "P:\"
-    BackupMappings = [ordered]@{
-        'DCIM\Camera' = ''
+    BackupMappings  = [ordered]@{
+        'DCIM\Camera'      = ''
         'DCIM\Screenshots' = 'Screenshots'
-        'WhatsApp' = 'WhatsAPP'
-        'Download' = 'Download_S25'
+        'WhatsApp'         = 'WhatsAPP'
+        'Download'         = 'Download_S25'
+    }
+}
+
+$backupConfig = @{
+    DeviceName      = "Galaxy S25 Ultra"
+    StorageRoot     = "Stockage interne"
+    DestinationRoot = "P:\"
+    BackupMappings  = [ordered]@{
+        'DCIM\Camera'      = ''
     }
 }
 
