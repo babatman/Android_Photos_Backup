@@ -64,3 +64,6 @@ CTRL+Shift+p
 powershell:run
 
 ```
+
+## Debugging with powershell
+https://devblogs.microsoft.com/scripting/debugging-powershell-script-in-visual-studio-code-part-1/
