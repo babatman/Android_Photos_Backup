@@ -277,10 +277,7 @@ function Copy-MtpContent {
     process {
         try {
             # Normalize destination path
-            $normalizedDestination = $DestinationPath -replace '^\w+:', ''
-            if (-not $normalizedDestination.StartsWith('\')) {
-                $normalizedDestination = '\' + $normalizedDestination
-            }
+            $normalizedDestination = $DestinationPath 
             
             # Create destination directory
             New-BackupDirectory -Path $normalizedDestination -Verbose:$VerbosePreference
@@ -454,6 +451,7 @@ function Start-AndroidBackup {
 }
 
 # Configuration example
+<#
 $backupConfig = @{
     DeviceName = "Galaxy S25 Ultra"
     StorageRoot = "Internal storage"
@@ -464,10 +462,23 @@ $backupConfig = @{
         'WhatsApp' = 'WhatsAPP'
         'Download' = 'Download_S25'
     }
+}#>
+
+#Cleaning
+Remove-Variable backupConfig  -ErrorAction SilentlyContinue
+
+$backupConfig = @{
+    DeviceName = "Galaxy S25 Ultra"
+    StorageRoot = "Stockage interne"
+    DestinationRoot = "P:\"
+    BackupMappings = [ordered]@{
+        'DCIM\Camera' = ''
+        'DCIM\Screenshots' = 'Screenshots'
+        'WhatsApp' = 'WhatsAPP'
+        'Download' = 'Download_S25'
+    }
 }
 
 # Usage example
-if ($MyInvocation.InvocationName -ne '.') {
-    $result = Start-AndroidBackup @backupConfig -Verbose -InformationAction Continue
-    Write-Host "Backup completed: $($result.ToString())" -ForegroundColor Green
-}
+$result = Start-AndroidBackup @backupConfig -Verbose -InformationAction Continue
+Write-Host "Backup completed: $($result.ToString())" -ForegroundColor Green
