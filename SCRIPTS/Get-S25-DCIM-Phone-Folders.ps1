@@ -14,7 +14,7 @@
     Requires: PowerShell 5.1 or higher
 #>
 
-
+Remove-Variable backupConfig  -ErrorAction SilentlyContinue
 $backupConfig = @{
     DeviceName      = "Galaxy S25 Ultra"
     StorageRoot     = "Stockage interne"
@@ -487,7 +487,7 @@ $backupConfig = @{
 }#>
 
 #Cleaning
-Remove-Variable backupConfig  -ErrorAction SilentlyContinue
+
 
 
 
