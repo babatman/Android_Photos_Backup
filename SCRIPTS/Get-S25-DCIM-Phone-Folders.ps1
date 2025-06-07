@@ -13,7 +13,21 @@
     Version: 2.0
     Requires: PowerShell 5.1 or higher
 #>
+#automatic detection of phone device
+Remove-Variable backupConfig  -ErrorAction SilentlyContinue
+$backupConfig = @{
+    DeviceName      = ""
+    StorageRoot     = "Stockage interne"
+    DestinationRoot = "P:\"
+    BackupMappings  = [ordered]@{
+        'DCIM\Camera'      = ''
+        'DCIM\Screenshots' = 'Screenshots'
+        'WhatsApp'         = 'WhatsAPP'
+        'Download'         = 'Download_S25'
+    }
+}
 
+#device defined
 Remove-Variable backupConfig  -ErrorAction SilentlyContinue
 $backupConfig = @{
     DeviceName      = "Galaxy S25 Ultra"
@@ -113,8 +127,9 @@ function Get-MtpDevice {
     [CmdletBinding()]
     [OutputType([System.__ComObject])]
     param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyString()]
+        [AllowNull()] 
         [string]$DeviceName
     )
     
@@ -123,11 +138,15 @@ function Get-MtpDevice {
             Write-Verbose "Searching for MTP device: $DeviceName"
             $shellApp = New-Object -ComObject Shell.Application
             $computerNamespace = $shellApp.NameSpace(0x11)
-            
-            $device = $computerNamespace.Items() | 
-            Where-Object { $_.Name -eq $DeviceName } | 
-            Select-Object -First 1
-            
+            if ([string]::IsNullOrEmpty($DeviceName)) {
+                $device = $computerNamespace.Items() | Where-Object { $_.path.length -gt 30 } | Select-Object -First 1
+            }
+            else {
+                $device = $computerNamespace.Items() | 
+                Where-Object { $_.Name -eq $DeviceName } | 
+                Select-Object -First 1
+            }
+
             if (-not $device) {
                 throw "MTP device '$DeviceName' not found. Please ensure the device is connected and MTP is enabled."
             }
