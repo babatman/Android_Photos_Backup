@@ -23,7 +23,7 @@ $backupConfig = @{
         'DCIM\Camera'      = ''
         'DCIM\Screenshots' = 'Screenshots'
         'WhatsApp'         = 'WhatsAPP'
-        'Download'         = 'Download_S25'
+        #'Download'         = 'Download_S25'
     }
 }
 
@@ -35,9 +35,9 @@ $backupConfig = @{
     DestinationRoot = "P:\"
     BackupMappings  = [ordered]@{
         'DCIM\Camera'      = ''
-        'DCIM\Screenshots' = 'Screenshots'
+    #    'DCIM\Screenshots' = 'Screenshots'
         'WhatsApp'         = 'WhatsAPP'
-        'Download'         = 'Download_S25'
+     #   'Download'         = 'Download_S25'
     }
 }
 
