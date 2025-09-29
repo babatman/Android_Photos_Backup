@@ -67,3 +67,19 @@ powershell:run
 
 ## Debugging with powershell
 https://devblogs.microsoft.com/scripting/debugging-powershell-script-in-visual-studio-code-part-1/
+
+## Output example
+```
+COMMENTAIRES : File already exists: 20250401_082225.jpg
+COMMENTAIRES : File already exists: 20250927_105117.jpg
+COMMENTAIRES : File already exists: VID_20250302_173740.mp4 
+COMMENTAIRES : File already exists: 20250807_173646.jpg
+COMMENTAIRES : File already exists: 20250329_162850.jpg
+COMMENTAIRES : File already exists: 20250822_210023.jpg
+COMMENTAIRES : File already exists: 20250726_214503(0).jpg
+COMMENTAIRES : File already exists: 20250316_151916.jpg
+Completed backup of: Bureau\Ce PC\Galaxy S25 Ultra\Stockage interne\DCIM\Camera
+Backup Summary - New: 0, Existing: 9620, Errors: 0, Duration: 00:00:30
+Backup completed: Backup Summary - New: 0, Existing: 9620, Errors: 0, Duration: 00:00:30
+PS A:\00--H_DRIVE--\Android_Photos_Backup>
+```
