@@ -35,9 +35,9 @@ $backupConfig = @{
     DestinationRoot = "P:\"
     BackupMappings  = [ordered]@{
         'DCIM\Camera'      = ''
-    #    'DCIM\Screenshots' = 'Screenshots'
+        'DCIM\Screenshots' = 'Screenshots'
         'WhatsApp'         = 'WhatsAPP'
-     #   'Download'         = 'Download_S25'
+        'Download'         = 'Download_S25'
     }
 }
 
@@ -349,7 +349,7 @@ function Copy-MtpContent {
                             $subfolderDestination = Join-Path $normalizedDestination $item.GetFolder.Title
                             Copy-MtpContent -SourceMtpFolder $item -DestinationPath $subfolderDestination -Summary $Summary -MaxRetries $MaxRetries
                         }
-                        elseif (Test-Path $destinationFile -PathType Leaf) {
+                        elseif ([system.io.file]::Exists($destinationFile)) {
                             Write-Verbose "File already exists: $itemName"
                             $Summary.ExistingFilesCount++
                         }
