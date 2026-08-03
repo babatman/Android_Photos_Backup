@@ -272,8 +272,8 @@ function Copy-MtpContent {
         
     .DESCRIPTION
         Performs recursive backup of MTP folder content to a local directory.
-        Supports file skipping for existing files and provides detailed progress reporting.
-        Includes retry logic for handling temporary MTP communication issues.
+        Supports skipping files if they exist anywhere within the destination tree
+        (including subfolders) and provides detailed progress reporting.
         
     .PARAMETER SourceMtpFolder
         The source MTP folder object to copy from
@@ -284,12 +284,11 @@ function Copy-MtpContent {
     .PARAMETER Summary
         The backup summary object to track statistics
         
+    .PARAMETER ExistingFileNames
+        (Internal) High-performance HashSet of file names already in the local tree.
+        
     .PARAMETER MaxRetries
         Maximum number of retry attempts for failed operations
-        
-    .EXAMPLE
-        $summary = [BackupSummary]::new()
-        Copy-MtpContent -SourceMtpFolder $cameraFolder -DestinationPath "C:\Backup\Photos" -Summary $summary
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -304,6 +303,9 @@ function Copy-MtpContent {
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [BackupSummary]$Summary,
+
+        [Parameter()]
+        [System.Collections.Generic.HashSet[string]]$ExistingFileNames = $null,
         
         [Parameter()]
         [ValidateRange(1, 10)]
@@ -318,6 +320,21 @@ function Copy-MtpContent {
             # Create destination directory
             New-BackupDirectory -Path $normalizedDestination -Verbose:$VerbosePreference
             
+            # Populate the HashSet at the root level if it hasn't been created yet
+            if ($null -eq $ExistingFileNames) {
+                Write-Verbose "Building fast file index for local destination tree: $normalizedDestination"
+                $ExistingFileNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+                
+                if ([System.IO.Directory]::Exists($normalizedDestination)) {
+                    # EnumerateFiles is faster than GetFiles as it streams paths without buffering an array
+                    $allLocalFiles = [System.IO.Directory]::EnumerateFiles($normalizedDestination, "*", [System.IO.SearchOption]::AllDirectories)
+                    foreach ($file in $allLocalFiles) {
+                        $null = $ExistingFileNames.Add([System.IO.Path]::GetFileName($file))
+                    }
+                }
+                Write-Verbose "Indexed $($ExistingFileNames.Count) existing files across local root and subfolders."
+            }
+
             # Get source folder information
             $sourcePath = Get-MtpFolderPath -MtpFolder $SourceMtpFolder
             Write-Information "Processing folder: $sourcePath" -InformationAction Continue
@@ -333,13 +350,13 @@ function Copy-MtpContent {
                 $currentItem = 0
                 $sw = [System.Diagnostics.Stopwatch]::StartNew()
                 Write-Progress -Activity "Initialization" -Status "Starting up..." -PercentComplete 0 -Id 1
+                
                 foreach ($item in $items) {
                     $currentItem++
                     $itemName = $item.Name
-                    $destinationFile = Join-Path $normalizedDestination $itemName
                     
                     if ($sw.Elapsed.TotalMilliseconds -ge 500) {
-                        Write-Progress -Activity "Backing up $sourcePath" -Status $itemName -PercentComplete (($currentItem / $itemCount) * 100) -id 1
+                        Write-Progress -Activity "Backing up $sourcePath" -Status $itemName -PercentComplete (($currentItem / $itemCount) * 100) -Id 1
                         $sw.Reset(); $sw.Start()
                     }
 
@@ -347,10 +364,13 @@ function Copy-MtpContent {
                         if ($item.IsFolder) {
                             Write-Verbose "Processing subfolder: $itemName"
                             $subfolderDestination = Join-Path $normalizedDestination $item.GetFolder.Title
-                            Copy-MtpContent -SourceMtpFolder $item -DestinationPath $subfolderDestination -Summary $Summary -MaxRetries $MaxRetries
+                            
+                            # Pass the existing HashSet down to recursive calls
+                            Copy-MtpContent -SourceMtpFolder $item -DestinationPath $subfolderDestination -Summary $Summary -ExistingFileNames $ExistingFileNames -MaxRetries $MaxRetries
                         }
-                        elseif ([system.io.file]::Exists($destinationFile)) {
-                            Write-Verbose "File already exists: $itemName"
+                        # Fast O(1) lookup to see if the filename exists anywhere in the root or subfolders
+                        elseif ($ExistingFileNames.Contains($itemName)) {
+                            Write-Verbose "File already exists in destination tree (or subfolder): $itemName"
                             $Summary.ExistingFilesCount++
                         }
                         else {
@@ -360,9 +380,15 @@ function Copy-MtpContent {
                             do {
                                 try {
                                     Write-Verbose "Copying file ($($retryCount + 1)/$MaxRetries): $itemName"
-                                    $destinationShell.CopyHere($item, 4 + 16) # 4 = No dialog, 16 = Yes to all
+                                    
+                                    # 4 = Hide progress dialog, 16 = Respond 'Yes to All' for any prompt
+                                    $destinationShell.CopyHere($item, 4 + 16) 
                                     $copySuccess = $true
+                                    
+                                    # Update summary and memory index so duplicate MTP files aren't re-copied later
                                     $Summary.NewFilesCount++
+                                    $null = $ExistingFileNames.Add($itemName)
+                                    
                                     Write-Information "Copied: $itemName" -InformationAction Continue
                                 }
                                 catch {
